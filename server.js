@@ -27,19 +27,21 @@ var userInputs = []
 
 var environment = {
  players: {},
- food: []
+ food: {}
 };
 
 
 
 function generateFood()
 {
-	environment.food.push({
+	var player_id = uuid.v1()
+
+	environment.food[player_id] = {
 		x: Math.random() * 1000,
 		y: Math.random() * 600,
 		radius:5,
 		color:'#'+ Math.floor(Math.random() * 16777215).toString(16)
-	})
+	}
 
 }
 

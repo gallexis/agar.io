@@ -3,7 +3,7 @@ var socket = require('socket.io-client')();
 
 var environment = {
  players: {},
- food: []
+ food: {}
 };
 
 var player = {
@@ -35,15 +35,17 @@ function drawPlayer(playerId) {
 	// draw the player in the canvas
 }
 
-function drawObject(food) {
+function drawObject(foodId) {
+	var food = environment.food[foodId];
 	drawCircle(food.x,food.y,food.radius,food.color)
 }
 
 function renderLoop(){
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
 	Object.keys(environment.players).forEach(drawPlayer);
+	Object.keys(environment.food).forEach(drawObject);
 
-	environment.food.forEach(drawObject);
+	//environment.food.forEach(drawObject);
 	window.requestAnimationFrame(renderLoop);
 }
 
