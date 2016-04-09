@@ -15,9 +15,24 @@ var player = {
 }
 
 var player_id = ""
+var canvas = document.getElementById('canvas');
+var ctx = canvas.getContext('2d');
+
+
+function drawCircle(x,y,r,c){
+	 var start = 0;
+	 var finish = 2*Math.PI;
+	 ctx.fillStyle = c;
+	 ctx.beginPath();
+	 ctx.arc(x,y,r,start, finish);
+	 ctx.fill();
+	 ctx.stroke();
+}
 
 function drawPlayer(playerId) {
 	var player = environment.players[playerId];
+	drawCircle(player.x,player.y,50,player.color)
+	//console.log(playerId)
 	// draw the player in the canvas
 }
 
@@ -26,7 +41,8 @@ function drawObject(object) {
 }
 
 function renderLoop(){
-	//Object.keys(environment.players).forEach(drawPlayer);
+	ctx.clearRect(0, 0, canvas.width, canvas.height);
+	Object.keys(environment.players).forEach(drawPlayer);
 	//environment.foods.forEach(drawObject);
 	window.requestAnimationFrame(renderLoop);
 }
@@ -34,7 +50,7 @@ function renderLoop(){
 
 socket.on('updateEnvironment',function(newEnvironment) {
 	environment = newEnvironment
-	console.log(environment)
+	//console.log(environment)
 });
 
 socket.on('player_id',function(id) {
@@ -44,14 +60,16 @@ socket.on('player_id',function(id) {
 
 // Listen to user input, and send it to
 // the server
-$(document).on('keydown', function(event) {
-	//if(event.keyCode == 38)
+$("#canvas").on('mousemove', function(event) {
+	
 	order = {
 		player_id:player_id.player_id,
-		cmd: 'UP_PRESSED'
+		x: event.clientX,
+		y: event.clientY
 	}
+
 	socket.emit('order',order);
-	
+	//console.log(order)
 });
 
 
