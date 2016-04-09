@@ -17,7 +17,6 @@ router.get('/', route.index);
 // router.get('/home', route.home);
 
 
-
 app.use('/', router);
 app.use(route.error404);
 //----------------------------
@@ -31,16 +30,17 @@ var environment = {
  food: []
 };
 
-var food = {
-	radius :1,
-	color:"blue"
-}
+
 
 function generateFood()
 {
+	environment.food.push({
+		x: Math.random() * 1000,
+		y: Math.random() * 600,
+		radius:5,
+		color:'#'+ Math.floor(Math.random() * 16777215).toString(16)
+	})
 
-
-	
 }
 
 
@@ -49,8 +49,8 @@ function newConnection(socket) {
 	var player_id = uuid.v1()
 
 	environment.players[player_id] = {
-		x:100,
-		y:100,
+		x: Math.random() * 1000,
+		y: Math.random() * 600,
 		radius:1,
 		color:'#'+ Math.floor(Math.random() * 16777215).toString(16)
 	}
@@ -122,6 +122,7 @@ io.on('connection', newConnection);
 
 
 setInterval(gameLoop, 1000/30); 
+setInterval(generateFood, 800); 
 
 
 
