@@ -50,48 +50,52 @@ function generateFoods()
 	}
 }
 
-function cellsCollison(playerId,t,self)
-{
-	
-	console.log(t)
-	console.log(self)
-}
-
 function detectCollisions(player_id)
 {
-	x = environment.players[player_id].x 
-	y = environment.players[player_id].y
-	r = environment.players[player_id].radius
+	try{
 
-	for(var i =0; i < environment.food.length; i++)
-	{
-		distance = Math.floor((x - environment.food[i].x)*(x - environment.food[i].x) + (y - environment.food[i].y)*(y - environment.food[i].y))
+		x = environment.players[player_id].x 
+		y = environment.players[player_id].y
+		r = environment.players[player_id].radius
 
-		// collision --> distance entre 2 centres de cellules < au diametre de la cellule du player
-		if( (distance - environment.food[i].radius) <= r*r )
+		for(var i =0; i < environment.food.length; i++)
 		{
-			environment.food[i] = createFood()
-			environment.players[player_id].radius++ // ajouter super formule pour augmenter la cellule
-			//break ? pour soulager le pc
+			distance = (x - environment.food[i].x)*(x - environment.food[i].x) + (y - environment.food[i].y)*(y - environment.food[i].y)
+
+			// collision --> distance entre 2 centres de cellules < au diametre de la cellule du player
+			if( (distance - environment.food[i].radius) <= r*r )
+			{
+				environment.food[i] = createFood()
+				environment.players[player_id].radius++ // ajouter super formule pour augmenter la cellule
+				//break ? pour soulager le pc
+			}
+		}	
+
+		for (var key in environment.players) {
+		    var cell = environment.players[key];
+
+		   	if(key == player_id)
+		   		continue
+
+		   	distance = (x - cell.x)*(x - cell.x) + (y - cell.y)*(y - cell.y)
+
+			// collision --> distance entre 2 centres de cellules < au diametre de la cellule du player
+			if( ((distance - cell.radius) <= r*r) && r > (cell.radius+2) )
+			{
+				environment.players[player_id].radius += cell.radius
+				// send event: you lose
+				delete environment.players[key]
+			}
+
 		}
-	}	
 
-	for (var key in environment.players) {
-	    var cell = environment.players[key];
-
-	   	if(key == player_id)
-	   		continue
-
-	   	distance = (x - cell.x)*(x - cell.x) + (y - cell.y)*(y - cell.y)
-
-		// collision --> distance entre 2 centres de cellules < au diametre de la cellule du player
-		if( ((distance - cell.radius) <= r*r) && r > (cell.radius+4) )
-		{
-			environment.players[player_id].radius += cell.radius
-			delete environment.players[key]
-		}
 
 	}
+	catch(e)
+	{
+
+	}
+	
 
 }
 
@@ -112,14 +116,11 @@ function newConnection(socket) {
 	socket.on('order', function(order){
 		//userInputs.push(order)
 		player_id = order.player_id
-		x = order.x
-		y = order.y
+		direction = order.new_direction
 
 		try{
-			environment.players[player_id].x = x
-			environment.players[player_id].y = y
-
-			detectCollisions(player_id)
+			environment.players[player_id].x += direction[0]
+			environment.players[player_id].y += direction[1]
 
 		}
 		catch(err)
@@ -162,6 +163,7 @@ function updateEnvironment() {
 function gameLoop() {
 	//updateEnvironment();
 	//console.log(environment)
+	Object.keys(environment.players).forEach(detectCollisions);
 	io.emit('updateEnvironment', environment);
 }
 
