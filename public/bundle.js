@@ -31,7 +31,7 @@ function drawCircle(x,y,r,c){
 
 function drawPlayer(playerId) {
 	var player = environment.players[playerId];
-	drawCircle(player.x,player.y,50,player.color)
+	drawCircle(player.x,player.y,player.radius,player.color)
 	//console.log(playerId)
 	// draw the player in the canvas
 }
