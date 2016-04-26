@@ -31,6 +31,13 @@ var environment = {
 };
 
 //-----------------------------------
+function verifyCoordinates(coord)
+{
+	if(coord == -1 || coord == 0 || coord == 1)
+		return coord
+	else 
+		return 0
+}
 
 function createFood()
 {
@@ -89,13 +96,11 @@ function detectCollisions(player_id)
 
 		}
 
-
 	}
 	catch(e)
 	{
 
 	}
-	
 
 }
 
@@ -119,12 +124,16 @@ function newConnection(socket) {
 		direction = order.new_direction
 
 		try{
-			environment.players[player_id].x += direction[0]
-			environment.players[player_id].y += direction[1]
+			environment.players[player_id].x += verifyCoordinates(direction[0])
+			environment.players[player_id].y += verifyCoordinates(direction[1])
 
+			if(environment.players[player_id].x <= 0) environment.players[player_id].x = 0
+			if(environment.players[player_id].y <= 0) environment.players[player_id].y = 0
+			// verifier deborder du cadre : >= width et >= height
 		}
 		catch(err)
 		{
+			console.log(err)
 			console.log(player_id + " removed")
 			delete environment.players[player_id]
 		}

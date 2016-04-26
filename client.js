@@ -125,8 +125,6 @@ function moveCell(){
 $("#canvas").on('mousemove', function(event) {
 	MOUSE_X = event.clientX
     MOUSE_Y = event.clientY
-    console.log(MOUSE_X)
-    console.log(MOUSE_Y)
 });
 
 //-------------------------------------------------
@@ -137,6 +135,7 @@ socket.on('updateEnvironment',function(newEnvironment) {
 
 socket.on('player_id',function(id) {
 	player_id = id
+	renderLoop()
 });
 
 
@@ -144,4 +143,4 @@ socket.on('player_id',function(id) {
 
 socket.emit('connection',{});
 
-renderLoop()
+

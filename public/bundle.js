@@ -91,16 +91,20 @@ function get_direction(xMouse,yMouse){
 	else if(xMouse > 2*x_side && (yMouse > y_side && yMouse < 2*y_side ))
 		return [1,0]
 
+	// haut-gauche
 	else if(xMouse < x_side && yMouse < y_side)
 		return [-1,-1]
 
-	else if(xMouse > x_side && yMouse < y_side)
+	// haut-droit
+	else if(xMouse > 2*x_side && yMouse < y_side)
 		return [1,-1]
 
-	else if(xMouse < x_side && yMouse > y_side)
+	// bas-gauche
+	else if(xMouse < x_side && yMouse > 2*y_side)
 		return [-1,1]
 
-	else if(xMouse > x_side && yMouse > y_side)
+	// bas-droit
+	else if(xMouse > 2*x_side && yMouse > 2*y_side)
 		return [1,1]
 
 	else
@@ -122,8 +126,6 @@ function moveCell(){
 $("#canvas").on('mousemove', function(event) {
 	MOUSE_X = event.clientX
     MOUSE_Y = event.clientY
-    console.log(MOUSE_X)
-    console.log(MOUSE_Y)
 });
 
 //-------------------------------------------------
@@ -134,6 +136,7 @@ socket.on('updateEnvironment',function(newEnvironment) {
 
 socket.on('player_id',function(id) {
 	player_id = id
+	renderLoop()
 });
 
 
@@ -141,7 +144,7 @@ socket.on('player_id',function(id) {
 
 socket.emit('connection',{});
 
-renderLoop()
+
 
 },{"jquery":30,"socket.io-client":35}],2:[function(require,module,exports){
 module.exports = after
