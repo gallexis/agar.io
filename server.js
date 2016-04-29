@@ -57,7 +57,18 @@ function generateFoods()
 	}
 }
 
-function modifyCoordinates(cell_x, cell_y, mouse_x, mouse_y)
+function sizeCell(radius_cell_eating,radius_cell_eaten)
+{
+	r2 = (Math.log(radius_cell_eating*radius_cell_eaten)/radius_cell_eating)*5
+	return radius_cell_eating + r2
+}
+
+function speed(radius)
+{
+	return (Math.log(radius*radius)/radius)*5
+}
+
+function moveCell(cell_x, cell_y, mouse_x, mouse_y)
 {
 	new_cell_x = mouse_x - cell_x
 	new_cell_y = mouse_y - cell_y
@@ -89,7 +100,7 @@ function detectCollisions(player_id)
 			if( (distance - environment.food[i].radius) <= r*r )
 			{
 				environment.food[i] = createFood()
-				environment.players[player_id].radius++ // ajouter super formule pour augmenter la cellule
+				environment.players[player_id].radius = sizeCell(environment.players[player_id].radius, 5)
 				//break ? pour soulager le pc
 			}
 		}	
@@ -142,23 +153,22 @@ function newConnection(socket) {
 		mouse_y = order.mouse_y
 
 		try{
-
-			new_cell_coord = modifyCoordinates(environment.players[player_id].x,environment.players[player_id].y,mouse_x,mouse_y)
-			environment.players[player_id].x += new_cell_coord.x
-			environment.players[player_id].y += new_cell_coord.y
+			radius = environment.players[player_id].radius
+			new_cell_coord = moveCell(environment.players[player_id].x,environment.players[player_id].y,mouse_x,mouse_y)
+			environment.players[player_id].x += new_cell_coord.x + (new_cell_coord.x * speed(radius, radius) )
+			environment.players[player_id].y += new_cell_coord.y + (new_cell_coord.y * speed(radius, radius) )
 
 		}
 		catch(err)
 		{
-			console.log(err)
 			console.log(player_id + " removed")
-			delete environment.players[player_id]
+			removePlayer(player_id,socket)
 		}
 
 	}); 
 
 	socket.on('disconnect', function(){
-     	delete environment.players[player_id]
+     	removePlayer(player_id,socket)
   	});
 	
 }
@@ -184,7 +194,11 @@ function updateEnvironment() {
 
 }
 */
-
+function removePlayer(player_id,socket)
+{
+	delete environment.players[player_id]
+	socket.emit("game_over", { }) // ajouter score
+}
 
 function gameLoop() {
 	//updateEnvironment();
@@ -199,3 +213,4 @@ generateFoods()
 
 setInterval(gameLoop, 1000/30);
 server.listen(8080);
+

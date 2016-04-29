@@ -62,12 +62,22 @@ function renderLoop(){
 
 function moveCell(){
 
-	order = {
-		player_id:player_id.player_id,
-		mouse_x: MOUSE_X,
-		mouse_y: MOUSE_Y
+	try{
+		if(environment.players[player_id.player_id])
+		{
+			order = {
+				player_id:player_id.player_id,
+				mouse_x: MOUSE_X,
+				mouse_y: MOUSE_Y
+			}
+			socket.emit('order',order);
+		}
 	}
-	socket.emit('order',order);
+	catch(e)
+	{
+		console.log('eeeeeeeeeee')
+	}
+
 }
 
 
@@ -87,6 +97,12 @@ socket.on('updateEnvironment',function(newEnvironment) {
 socket.on('player_id',function(id) {
 	player_id = id
 	renderLoop()
+});
+
+socket.on('game_over',function(id) {
+	socket.emit('connection',{});
+
+
 });
 
 
