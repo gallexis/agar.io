@@ -15,6 +15,7 @@ var player = {
 
 var MOUSE_X = 0
 var MOUSE_Y = 0
+
 var player_id = ""
 var canvas = document.getElementById('canvas');
 var ctx = canvas.getContext('2d');
@@ -25,6 +26,41 @@ var HEIGHT = canvas.height;
 // Drawing functions
 //------------------------------------
 function drawCircle(x,y,r,c){
+
+	var half_width_screen = WIDTH/2
+	var half_height_screen = HEIGHT/2
+
+	var width_map = 1000
+	var height_map = 1000
+
+	var main_cell_x = environment.players[player_id.player_id].x
+	var main_cell_y = environment.players[player_id.player_id].y
+
+	var x_distance = Math.abs(main_cell_x - x)
+	var y_distance = Math.abs(main_cell_y - y)
+
+
+
+	if(x_distance > half_width_screen)
+		return
+	else if(y_distance > half_height_screen)
+		return
+
+
+	if( (main_cell_x-x)>0 )
+		x = half_width_screen - x_distance
+	else 
+		x = half_width_screen + x_distance
+
+
+	if( (main_cell_y-y)>0 )
+		y = half_height_screen - y_distance
+	else 
+		y = half_height_screen + y_distance
+
+	//x = main_cell_x - x
+	//y = main_cell_y - y
+
 	 var start = 0;
 	 var finish = 2*Math.PI;
 	 ctx.fillStyle = c;
@@ -54,7 +90,6 @@ function renderLoop(){
 	window.requestAnimationFrame(renderLoop);
 }
 
-
 //---------------------------------------------
 // Movements of cell
 //---------------------------------------------
@@ -74,7 +109,7 @@ function moveCell(){
 	}
 	catch(e)
 	{
-		console.log('eeeeeeeeeee')
+		console.log('movecell '+e)
 	}
 
 }

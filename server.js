@@ -30,6 +30,10 @@ var environment = {
  food: []
 };
 
+var WIDTH = 1000
+var HEIGHT = 1000
+
+
 //-----------------------------------
 function verifyCoordinates(coord)
 {
@@ -42,8 +46,8 @@ function verifyCoordinates(coord)
 function createFood()
 {
 	return {
-		x: Math.random() * 1000,
-		y: Math.random() * 600,
+		x: Math.random() * WIDTH,
+		y: Math.random() * HEIGHT,
 		radius:5,
 		color:'#'+ Math.floor(Math.random() * 16777215).toString(16)
 	}
@@ -138,8 +142,8 @@ function newConnection(socket) {
 	var player_id = uuid.v1()
 
 	environment.players[player_id] = {
-		x: Math.random() * 1000,
-		y: Math.random() * 600,
+		x: Math.random() * WIDTH,
+		y: Math.random() * HEIGHT,
 		radius:15,
 		color:'#'+ Math.floor(Math.random() * 16777215).toString(16)
 	}
