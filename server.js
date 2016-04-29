@@ -57,6 +57,20 @@ function generateFoods()
 	}
 }
 
+function modifyCoordinates(cell_x, cell_y, mouse_x, mouse_y)
+{
+	new_cell_x = mouse_x - cell_x
+	new_cell_y = mouse_y - cell_y
+
+	distance = Math.sqrt( Math.pow(new_cell_x,2) + Math.pow(new_cell_y,2) )
+
+	new_cell_x /= distance
+	new_cell_y /= distance
+
+	return {x: new_cell_x, y: new_cell_y}
+
+}
+
 function detectCollisions(player_id)
 {
 	try{
@@ -65,6 +79,8 @@ function detectCollisions(player_id)
 		y = environment.players[player_id].y
 		r = environment.players[player_id].radius
 
+
+		// collisions entre cellules et foods
 		for(var i =0; i < environment.food.length; i++)
 		{
 			distance = (x - environment.food[i].x)*(x - environment.food[i].x) + (y - environment.food[i].y)*(y - environment.food[i].y)
@@ -78,6 +94,7 @@ function detectCollisions(player_id)
 			}
 		}	
 
+		// collisions entre cellules
 		for (var key in environment.players) {
 		    var cell = environment.players[key];
 
@@ -119,17 +136,17 @@ function newConnection(socket) {
 	socket.emit("player_id", { player_id:player_id })
 
 	socket.on('order', function(order){
-		//userInputs.push(order)
+	
 		player_id = order.player_id
-		direction = order.new_direction
+		mouse_x = order.mouse_x
+		mouse_y = order.mouse_y
 
 		try{
-			environment.players[player_id].x += verifyCoordinates(direction[0])
-			environment.players[player_id].y += verifyCoordinates(direction[1])
 
-			if(environment.players[player_id].x <= 0) environment.players[player_id].x = 0
-			if(environment.players[player_id].y <= 0) environment.players[player_id].y = 0
-			// verifier deborder du cadre : >= width et >= height
+			new_cell_coord = modifyCoordinates(environment.players[player_id].x,environment.players[player_id].y,mouse_x,mouse_y)
+			environment.players[player_id].x += new_cell_coord.x
+			environment.players[player_id].y += new_cell_coord.y
+
 		}
 		catch(err)
 		{

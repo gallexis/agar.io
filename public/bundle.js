@@ -54,71 +54,19 @@ function renderLoop(){
 	//environment.food.forEach(drawFood);
 	window.requestAnimationFrame(renderLoop);
 }
-//-------------------------------------------
+
 
 //---------------------------------------------
 // Movements of cell
 //---------------------------------------------
 
-/* 
-	diviser la partie du canvas en 8 coins:
-		- haut: 		(x),(y-1)
-		- bas:     	 	(x),(y+1)
-		- gauche: 	    (x-1),(y)
-		- droite: 		(x+1),(y)
-		- haut-gauche:  (x-1),(y-1)
-		- haut-droit:   (x+1),(y-1)
-		- bas-gauche:   (x-1),(y+1)
-		- bas-droit:    (x+1),(y+1)
-*/
-function get_direction(xMouse,yMouse){
-	x_side = WIDTH/3
-	y_side = HEIGHT/3
-
-	//haut
-	if( (xMouse < 2*x_side && xMouse > x_side) && yMouse < y_side )
-		return [0,-1]
-
-	//bas
-	else if( (xMouse < 2*x_side && xMouse > x_side) && yMouse > 2*y_side)
-		return [0,1]
-
-	//gauche
-	else if(xMouse < x_side && (yMouse > y_side && yMouse < 2*y_side ))
-		return [-1,0]
-
-	//droite
-	else if(xMouse > 2*x_side && (yMouse > y_side && yMouse < 2*y_side ))
-		return [1,0]
-
-	// haut-gauche
-	else if(xMouse < x_side && yMouse < y_side)
-		return [-1,-1]
-
-	// haut-droit
-	else if(xMouse > 2*x_side && yMouse < y_side)
-		return [1,-1]
-
-	// bas-gauche
-	else if(xMouse < x_side && yMouse > 2*y_side)
-		return [-1,1]
-
-	// bas-droit
-	else if(xMouse > 2*x_side && yMouse > 2*y_side)
-		return [1,1]
-
-	else
-		return [0,0]
-
-}
-
 function moveCell(){
 
 	order = {
 		player_id:player_id.player_id,
-		new_direction: get_direction(MOUSE_X, MOUSE_Y)
+		mouse_x: MOUSE_X,
+		mouse_y: MOUSE_Y
 	}
-
 	socket.emit('order',order);
 }
 
@@ -128,7 +76,9 @@ $("#canvas").on('mousemove', function(event) {
     MOUSE_Y = event.clientY
 });
 
+
 //-------------------------------------------------
+
 socket.on('updateEnvironment',function(newEnvironment) {
 	environment = newEnvironment
 	//console.log(environment)
