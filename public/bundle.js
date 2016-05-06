@@ -1,6 +1,7 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 var $ = require("jquery");
 var socket = require('socket.io-client')();
+var CanvasGrid = require('canvas-grid');
 
 var environment = {
  players: {},
@@ -23,41 +24,93 @@ var ctx = canvas.getContext('2d');
 var WIDTH = canvas.width;
 var HEIGHT = canvas.height;
 
+var SERVER_WIDTH=10000
+var SERVER_HEIGHT=10000
+
 //------------------------------------
 // Drawing functions
 //------------------------------------
 function drawCircle(x,y,r,c){
 
+  //Variables contenant la moitiè des dimensions du canvas du client
 	var half_width_screen = WIDTH/2
 	var half_height_screen = HEIGHT/2
 
-	var width_map = 1000
-	var height_map = 1000
+  //Distance entre la position du joueur et le coté gauche de son canvas
+  var distance_gauche_x=half_width_screen
 
+  //Distance entre la position du joueur et le haut de son canvas
+  var distance_haut_y=half_height_screen
+
+  //Distance entre la position du joueur et le coté droit de son canvas
+  var distance_droit_x=half_width_screen
+
+  //Distance entre la position du joueur et le bas de son canvas
+  var distance_bas_y=half_height_screen
+
+
+  // Coordonnées du joueur
 	var main_cell_x = environment.players[player_id.player_id].x
 	var main_cell_y = environment.players[player_id.player_id].y
 
+  //valeur absolue de la distance entre le joueur et ce qu'on veut dessiner (food ou un autre joueur)
 	var x_distance = Math.abs(main_cell_x - x)
 	var y_distance = Math.abs(main_cell_y - y)
 
+  //Calcul des distances entre la position du joueur principal et les coordonnées de son canvas
+  if (main_cell_x < half_width_screen){
+    distance_gauche_x = main_cell_x
+    distance_droit_x = (half_width_screen * 2) -distance_gauche_x
+  }
 
+  if (main_cell_y < half_height_screen){
+    distance_haut_y = main_cell_y
+    distance_bas_y = (half_height_screen * 2) -distance_haut_y
+  }
 
-	if(x_distance > half_width_screen)
-		return
-	else if(y_distance > half_height_screen)
-		return
+  if ((SERVER_WIDTH - main_cell_x) < half_width_screen){
+    distance_gauche_x = (half_width_screen * 2) - (SERVER_WIDTH - main_cell_x)
+    distance_droit_x = (SERVER_WIDTH - main_cell_x)
+  }
 
+  if ( (SERVER_HEIGHT - main_cell_y) < half_height_screen){
+    distance_haut_y = (half_height_screen * 2) - (SERVER_HEIGHT - main_cell_y)
+    distance_bas_y = (SERVER_HEIGHT - main_cell_y)
+  }
+  var draw_x=0
+  var draw_y=0
 
-	if( (main_cell_x-x)>0 )
-		x = half_width_screen - x_distance
-	else 
-		x = half_width_screen + x_distance
+  //On vérfie si ce qu'on veut déssiner se trouve dans le champ du canvas du client, afin de
+  // gérer le zoom sur le joueur principal
+  if( (main_cell_x-x)>=0 ){
+    if ( x_distance <= distance_gauche_x ){
+      x = distance_gauche_x - x_distance
+    }
+    else if ( x_distance > distance_gauche_x ) return
+  }
 
+  if( (main_cell_x-x)<=0 ){
+    if ( x_distance <= distance_droit_x )
+    {
+         x = distance_gauche_x + x_distance
+    }
+  else if ( x_distance > distance_droit_x ) return
+  }
 
-	if( (main_cell_y-y)>0 )
-		y = half_height_screen - y_distance
-	else 
-		y = half_height_screen + y_distance
+  if( (main_cell_y-y)>=0 ){
+    if ( y_distance <= distance_haut_y ){
+      y = distance_haut_y - y_distance
+    }
+    else if ( y_distance > distance_haut_y ) return
+  }
+
+  if( (main_cell_y-y)<=0 ){
+    if ( y_distance <= distance_bas_y ){
+        y = distance_haut_y + y_distance
+    }
+    else if ( y_distance > distance_bas_y ) return
+  }
+
 
 	//x = main_cell_x - x
 	//y = main_cell_y - y
@@ -83,21 +136,22 @@ function drawFood(foodId) {
 
 function renderLoop(){
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
+
 	Object.keys(environment.players).forEach(drawPlayer);
 	Object.keys(environment.food).forEach(drawFood);
 	moveCell()
 
-	//environment.food.forEach(drawFood);
 	window.requestAnimationFrame(renderLoop);
 }
 
 //---------------------------------------------
-// Movements of cell
+//  Cells movements
 //---------------------------------------------
 
 function moveCell(){
 
 	try{
+		// if i am present inside the environment structure (I'm not dead)
 		if(environment.players[player_id.player_id])
 		{
 			order = {
@@ -110,15 +164,15 @@ function moveCell(){
 	}
 	catch(e)
 	{
-		console.log('movecell '+e)
+		
 	}
 
 }
 
 
 $("#canvas").on('mousemove', function(event) {
-	MOUSE_X = event.clientX
-    MOUSE_Y = event.clientY
+	MOUSE_X = event.clientX * (SERVER_WIDTH / WIDTH)
+    MOUSE_Y = event.clientY * (SERVER_HEIGHT / HEIGHT)
 });
 
 
@@ -126,7 +180,6 @@ $("#canvas").on('mousemove', function(event) {
 
 socket.on('updateEnvironment',function(newEnvironment) {
 	environment = newEnvironment
-	//console.log(environment)
 });
 
 socket.on('player_id',function(id) {
@@ -136,18 +189,10 @@ socket.on('player_id',function(id) {
 
 socket.on('game_over',function(id) {
 	socket.emit('connection',{});
-
-
 });
 
-
-
-
 socket.emit('connection',{});
-
-
-
-},{"jquery":30,"socket.io-client":35}],2:[function(require,module,exports){
+},{"canvas-grid":8,"jquery":32,"socket.io-client":37}],2:[function(require,module,exports){
 module.exports = after
 
 function after(count, callback, err_cb) {
@@ -459,6 +504,110 @@ module.exports = (function() {
 },{}],7:[function(require,module,exports){
 
 },{}],8:[function(require,module,exports){
+var cPc = require('canvas-pixel-color');
+
+function CanvasGrid(canvas, borderColor) {
+  this.canvas = canvas;
+  this.ctx = this.canvas.getContext('2d');
+
+  this.borderColor = borderColor || '#000000';
+
+  var self = this;
+  this.canvas.addEventListener('click', function(ev) {
+    var pos = {
+        x: ev.offsetX || ev.layerX,
+        y: ev.offsetY || ev.layerY
+    };
+
+    ev.cursorPos = pos;
+    ev.gridInfo = self.lookup(pos);
+    ev.gridInfo.color = cPc(ev, self.ctx);
+  });
+}
+
+CanvasGrid.prototype = {
+  lookup: function(pos) {
+    // these are zero indexed, since they are most
+    // likely representing an array/matrix.
+    var x = Math.floor(pos.x / this.cellWidth);
+    var y = Math.floor(pos.y / this.cellHeight);
+    return {
+      x: x,
+      y: y,
+      dimensions: {
+        t: this.cellHeight * y,
+        l: this.cellWidth * x,
+        w: this.cellWidth,
+        h: this.cellHeight
+      }
+    };
+  },
+
+  fillCell: function(x, y, color) {
+    this.ctx.fillStyle = color || this.borderColor;
+    this.ctx.fillRect(this.cellWidth * x + 1, this.cellHeight * y + 1, this.cellWidth - 1.4, this.cellHeight - 2);
+  },
+
+  clearCell: function(x, y) {
+    this.ctx.clearRect(this.cellWidth * x + 1, this.cellHeight * y + 1, this.cellWidth - 1.4, this.cellHeight - 2);
+  },
+
+  drawMatrix: function(matrix) {
+    this.cellWidth = this.canvas.width / matrix.x;
+    this.cellHeight = this.canvas.height / matrix.y;
+
+    this.drawTop();
+
+    for(var i=1; i<matrix.y + 1; i++) {
+      this.drawRow(this.cellHeight * i, matrix.x, this.cellWidth);
+    }
+  },
+
+  drawTop: function () {
+    this.ctx.moveTo(0, 0);
+    this.ctx.lineTo(this.canvas.width, 0);
+    this.ctx.strokeStyle = "#000";
+    this.ctx.stroke()
+  },
+
+  drawRow: function(y, columns, width) {
+    // draw horizontal line at bottom of row.
+    this.ctx.moveTo(0, y);
+    this.ctx.lineTo(this.canvas.width, y);
+
+    for(var x=0; x < columns + 1; x++) {
+      this.ctx.moveTo(width * x, 0);
+      this.ctx.lineTo(width * x, y);
+    }
+
+    this.ctx.strokeStyle = "#000";
+    this.ctx.stroke()
+  }
+};
+
+module.exports = CanvasGrid;
+},{"canvas-pixel-color":9}],9:[function(require,module,exports){
+function canvasPixelColor(ev, context) {
+  var x = ev.offsetX || ev.layerX;
+  var y = ev.offsetY || ev.layerY;
+  var data = context.getImageData(x, y, 1, 1).data;
+  var r = data[0];
+  var g = data[1];
+  var b = data[2];
+  var a = data[3];
+
+  return {
+    hex: rgbToHex(r, g, b),
+    rgba: [r,g,b,a]
+  }
+}
+
+function rgbToHex(r, g, b) {
+  return "#" + (16777216 | b | (g << 8) | (r << 16)).toString(16).slice(1);
+}
+
+module.exports = canvasPixelColor;
+},{}],10:[function(require,module,exports){
 /**
  * Slice reference.
  */
@@ -483,7 +632,7 @@ module.exports = function(obj, fn){
   }
 };
 
-},{}],9:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 
 /**
  * Expose `Emitter`.
@@ -649,7 +798,7 @@ Emitter.prototype.hasListeners = function(event){
   return !! this.listeners(event).length;
 };
 
-},{}],10:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 
 module.exports = function(a, b){
   var fn = function(){};
@@ -657,7 +806,7 @@ module.exports = function(a, b){
   a.prototype = new fn;
   a.prototype.constructor = a;
 };
-},{}],11:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 
 /**
  * This is the web browser implementation of `debug()`.
@@ -827,7 +976,7 @@ function localstorage(){
   } catch (e) {}
 }
 
-},{"./debug":12}],12:[function(require,module,exports){
+},{"./debug":14}],14:[function(require,module,exports){
 
 /**
  * This is the common logic for both the Node.js and web browser
@@ -1026,11 +1175,11 @@ function coerce(val) {
   return val;
 }
 
-},{"ms":31}],13:[function(require,module,exports){
+},{"ms":33}],15:[function(require,module,exports){
 
 module.exports =  require('./lib/');
 
-},{"./lib/":14}],14:[function(require,module,exports){
+},{"./lib/":16}],16:[function(require,module,exports){
 
 module.exports = require('./socket');
 
@@ -1042,7 +1191,7 @@ module.exports = require('./socket');
  */
 module.exports.parser = require('engine.io-parser');
 
-},{"./socket":15,"engine.io-parser":23}],15:[function(require,module,exports){
+},{"./socket":17,"engine.io-parser":25}],17:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies.
@@ -1774,7 +1923,7 @@ Socket.prototype.filterUpgrades = function (upgrades) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./transport":16,"./transports":17,"component-emitter":9,"debug":11,"engine.io-parser":23,"indexof":28,"parsejson":32,"parseqs":33,"parseuri":34}],16:[function(require,module,exports){
+},{"./transport":18,"./transports":19,"component-emitter":11,"debug":13,"engine.io-parser":25,"indexof":30,"parsejson":34,"parseqs":35,"parseuri":36}],18:[function(require,module,exports){
 /**
  * Module dependencies.
  */
@@ -1931,7 +2080,7 @@ Transport.prototype.onClose = function () {
   this.emit('close');
 };
 
-},{"component-emitter":9,"engine.io-parser":23}],17:[function(require,module,exports){
+},{"component-emitter":11,"engine.io-parser":25}],19:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies
@@ -1988,7 +2137,7 @@ function polling(opts){
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./polling-jsonp":18,"./polling-xhr":19,"./websocket":21,"xmlhttprequest-ssl":22}],18:[function(require,module,exports){
+},{"./polling-jsonp":20,"./polling-xhr":21,"./websocket":23,"xmlhttprequest-ssl":24}],20:[function(require,module,exports){
 (function (global){
 
 /**
@@ -2230,7 +2379,7 @@ JSONPPolling.prototype.doWrite = function (data, fn) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./polling":20,"component-inherit":10}],19:[function(require,module,exports){
+},{"./polling":22,"component-inherit":12}],21:[function(require,module,exports){
 (function (global){
 /**
  * Module requirements.
@@ -2646,7 +2795,7 @@ function unloadHandler() {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./polling":20,"component-emitter":9,"component-inherit":10,"debug":11,"xmlhttprequest-ssl":22}],20:[function(require,module,exports){
+},{"./polling":22,"component-emitter":11,"component-inherit":12,"debug":13,"xmlhttprequest-ssl":24}],22:[function(require,module,exports){
 /**
  * Module dependencies.
  */
@@ -2895,7 +3044,7 @@ Polling.prototype.uri = function(){
   return schema + '://' + (ipv6 ? '[' + this.hostname + ']' : this.hostname) + port + this.path + query;
 };
 
-},{"../transport":16,"component-inherit":10,"debug":11,"engine.io-parser":23,"parseqs":33,"xmlhttprequest-ssl":22,"yeast":47}],21:[function(require,module,exports){
+},{"../transport":18,"component-inherit":12,"debug":13,"engine.io-parser":25,"parseqs":35,"xmlhttprequest-ssl":24,"yeast":49}],23:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies.
@@ -3187,7 +3336,7 @@ WS.prototype.check = function(){
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../transport":16,"component-inherit":10,"debug":11,"engine.io-parser":23,"parseqs":33,"ws":7,"yeast":47}],22:[function(require,module,exports){
+},{"../transport":18,"component-inherit":12,"debug":13,"engine.io-parser":25,"parseqs":35,"ws":7,"yeast":49}],24:[function(require,module,exports){
 // browser shim for xmlhttprequest module
 var hasCORS = require('has-cors');
 
@@ -3225,7 +3374,7 @@ module.exports = function(opts) {
   }
 }
 
-},{"has-cors":27}],23:[function(require,module,exports){
+},{"has-cors":29}],25:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies.
@@ -3823,7 +3972,7 @@ exports.decodePayloadAsBinary = function (data, binaryType, callback) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./keys":24,"after":2,"arraybuffer.slice":3,"base64-arraybuffer":5,"blob":6,"has-binary":25,"utf8":46}],24:[function(require,module,exports){
+},{"./keys":26,"after":2,"arraybuffer.slice":3,"base64-arraybuffer":5,"blob":6,"has-binary":27,"utf8":48}],26:[function(require,module,exports){
 
 /**
  * Gets the keys for an object.
@@ -3844,7 +3993,7 @@ module.exports = Object.keys || function keys (obj){
   return arr;
 };
 
-},{}],25:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 (function (global){
 
 /*
@@ -3906,7 +4055,7 @@ function hasBinary(data) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"isarray":29}],26:[function(require,module,exports){
+},{"isarray":31}],28:[function(require,module,exports){
 (function (global){
 
 /*
@@ -3969,7 +4118,7 @@ function hasBinary(data) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"isarray":29}],27:[function(require,module,exports){
+},{"isarray":31}],29:[function(require,module,exports){
 
 /**
  * Module exports.
@@ -3988,7 +4137,7 @@ try {
   module.exports = false;
 }
 
-},{}],28:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 
 var indexOf = [].indexOf;
 
@@ -3999,12 +4148,12 @@ module.exports = function(arr, obj){
   }
   return -1;
 };
-},{}],29:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 module.exports = Array.isArray || function (arr) {
   return Object.prototype.toString.call(arr) == '[object Array]';
 };
 
-},{}],30:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v2.2.1
  * http://jquery.com/
@@ -13837,7 +13986,7 @@ if ( !noGlobal ) {
 return jQuery;
 }));
 
-},{}],31:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 /**
  * Helpers.
  */
@@ -13964,7 +14113,7 @@ function plural(ms, n, name) {
   return Math.ceil(ms / n) + ' ' + name + 's';
 }
 
-},{}],32:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 (function (global){
 /**
  * JSON parse.
@@ -13999,7 +14148,7 @@ module.exports = function parsejson(data) {
   }
 };
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],33:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 /**
  * Compiles a querystring
  * Returns string representation of the object
@@ -14038,7 +14187,7 @@ exports.decode = function(qs){
   return qry;
 };
 
-},{}],34:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 /**
  * Parses an URI
  *
@@ -14079,7 +14228,7 @@ module.exports = function parseuri(str) {
     return uri;
 };
 
-},{}],35:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -14173,7 +14322,7 @@ exports.connect = lookup;
 exports.Manager = require('./manager');
 exports.Socket = require('./socket');
 
-},{"./manager":36,"./socket":38,"./url":39,"debug":11,"socket.io-parser":42}],36:[function(require,module,exports){
+},{"./manager":38,"./socket":40,"./url":41,"debug":13,"socket.io-parser":44}],38:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -14732,7 +14881,7 @@ Manager.prototype.onreconnect = function(){
   this.emitAll('reconnect', attempt);
 };
 
-},{"./on":37,"./socket":38,"backo2":4,"component-bind":8,"component-emitter":40,"debug":11,"engine.io-client":13,"indexof":28,"socket.io-parser":42}],37:[function(require,module,exports){
+},{"./on":39,"./socket":40,"backo2":4,"component-bind":10,"component-emitter":42,"debug":13,"engine.io-client":15,"indexof":30,"socket.io-parser":44}],39:[function(require,module,exports){
 
 /**
  * Module exports.
@@ -14758,7 +14907,7 @@ function on(obj, ev, fn) {
   };
 }
 
-},{}],38:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -15172,7 +15321,7 @@ Socket.prototype.compress = function(compress){
   return this;
 };
 
-},{"./on":37,"component-bind":8,"component-emitter":40,"debug":11,"has-binary":26,"socket.io-parser":42,"to-array":45}],39:[function(require,module,exports){
+},{"./on":39,"component-bind":10,"component-emitter":42,"debug":13,"has-binary":28,"socket.io-parser":44,"to-array":47}],41:[function(require,module,exports){
 (function (global){
 
 /**
@@ -15252,7 +15401,7 @@ function url(uri, loc){
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"debug":11,"parseuri":34}],40:[function(require,module,exports){
+},{"debug":13,"parseuri":36}],42:[function(require,module,exports){
 
 /**
  * Expose `Emitter`.
@@ -15415,7 +15564,7 @@ Emitter.prototype.hasListeners = function(event){
   return !! this.listeners(event).length;
 };
 
-},{}],41:[function(require,module,exports){
+},{}],43:[function(require,module,exports){
 (function (global){
 /*global Blob,File*/
 
@@ -15560,7 +15709,7 @@ exports.removeBlobs = function(data, callback) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./is-buffer":43,"isarray":29}],42:[function(require,module,exports){
+},{"./is-buffer":45,"isarray":31}],44:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -15962,7 +16111,7 @@ function error(data){
   };
 }
 
-},{"./binary":41,"./is-buffer":43,"component-emitter":9,"debug":11,"isarray":29,"json3":44}],43:[function(require,module,exports){
+},{"./binary":43,"./is-buffer":45,"component-emitter":11,"debug":13,"isarray":31,"json3":46}],45:[function(require,module,exports){
 (function (global){
 
 module.exports = isBuf;
@@ -15979,7 +16128,7 @@ function isBuf(obj) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],44:[function(require,module,exports){
+},{}],46:[function(require,module,exports){
 (function (global){
 /*! JSON v3.3.2 | http://bestiejs.github.io/json3 | Copyright 2012-2014, Kit Cambridge | http://kit.mit-license.org */
 ;(function () {
@@ -16885,7 +17034,7 @@ function isBuf(obj) {
 }).call(this);
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],45:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 module.exports = toArray
 
 function toArray(list, index) {
@@ -16900,7 +17049,7 @@ function toArray(list, index) {
     return array
 }
 
-},{}],46:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 (function (global){
 /*! https://mths.be/utf8js v2.0.0 by @mathias */
 ;(function(root) {
@@ -17148,7 +17297,7 @@ function toArray(list, index) {
 }(this));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],47:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 'use strict';
 
 var alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_'.split('')

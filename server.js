@@ -23,25 +23,16 @@ app.use(route.error404);
 
 // GAME
 
-var userInputs = []
-
 var environment = {
  players: {},
  food: []
 };
 
-var WIDTH = 1000
-var HEIGHT = 1000
+var WIDTH = 10000
+var HEIGHT = 10000
 
 
 //-----------------------------------
-function verifyCoordinates(coord)
-{
-	if(coord == -1 || coord == 0 || coord == 1)
-		return coord
-	else 
-		return 0
-}
 
 function createFood()
 {
@@ -55,7 +46,7 @@ function createFood()
 
 function generateFoods()
 {
-	for(var i = 0;i < 100; i++)
+	for(var i = 0;i < (WIDTH/2); i++)
 	{
 		environment.food.push(createFood())
 	}
@@ -90,7 +81,7 @@ function detectCollisions(player_id)
 {
 	try{
 
-		x = environment.players[player_id].x 
+		x = environment.players[player_id].x
 		y = environment.players[player_id].y
 		r = environment.players[player_id].radius
 
@@ -107,7 +98,7 @@ function detectCollisions(player_id)
 				environment.players[player_id].radius = sizeCell(environment.players[player_id].radius, 5)
 				//break ? pour soulager le pc
 			}
-		}	
+		}
 
 		// collisions entre cellules
 		for (var key in environment.players) {
@@ -138,7 +129,7 @@ function detectCollisions(player_id)
 
 
 function newConnection(socket) {
-	
+
 	var player_id = uuid.v1()
 
 	environment.players[player_id] = {
@@ -151,7 +142,7 @@ function newConnection(socket) {
 	socket.emit("player_id", { player_id:player_id })
 
 	socket.on('order', function(order){
-	
+
 		player_id = order.player_id
 		mouse_x = order.mouse_x
 		mouse_y = order.mouse_y
@@ -159,8 +150,19 @@ function newConnection(socket) {
 		try{
 			radius = environment.players[player_id].radius
 			new_cell_coord = moveCell(environment.players[player_id].x,environment.players[player_id].y,mouse_x,mouse_y)
-			environment.players[player_id].x += new_cell_coord.x + (new_cell_coord.x * speed(radius, radius) )
-			environment.players[player_id].y += new_cell_coord.y + (new_cell_coord.y * speed(radius, radius) )
+
+		      if (new_cell_coord.x<0) {
+		        environment.players[player_id].x -= Math.abs(new_cell_coord.x) + Math.abs(new_cell_coord.x * speed(radius, radius) )
+		      }
+		      else {
+		        environment.players[player_id].x += new_cell_coord.x + (new_cell_coord.x * speed(radius, radius) )
+		      }
+		      if (new_cell_coord.y<0) {
+		        environment.players[player_id].y -= Math.abs(new_cell_coord.y) + Math.abs(new_cell_coord.y * speed(radius, radius) )
+		      }
+		      else {
+		        environment.players[player_id].y += new_cell_coord.y + (new_cell_coord.y * speed(radius, radius) )
+		      }
 
 		}
 		catch(err)
@@ -169,35 +171,14 @@ function newConnection(socket) {
 			removePlayer(player_id,socket)
 		}
 
-	}); 
+	});
 
 	socket.on('disconnect', function(){
      	removePlayer(player_id,socket)
   	});
-	
-}
-
-
-/*
-function updateEnvironment() {
-
-	input = userInputs.pop()
-
-	while(input !== undefined){
-		switch(input.cmd) {
-			case 'UP_PRESSED':
-			environment.players[input.player_id].y -= 1;
-			break;
-			case 'UP_RELEASED':
-			environment.players[input.player_id].y += 1;
-			break;
-		}
-
-		input = userInputs.pop()
-	}
 
 }
-*/
+
 function removePlayer(player_id,socket)
 {
 	delete environment.players[player_id]
@@ -205,16 +186,13 @@ function removePlayer(player_id,socket)
 }
 
 function gameLoop() {
-	//updateEnvironment();
-	//console.log(environment)
 	Object.keys(environment.players).forEach(detectCollisions);
 	io.emit('updateEnvironment', environment);
 }
 
 
-io.on('connection', newConnection); 
+io.on('connection', newConnection);
 generateFoods()
 
 setInterval(gameLoop, 1000/30);
-server.listen(8080);
-
+server.listen(3000);
